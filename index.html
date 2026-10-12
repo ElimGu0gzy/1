@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作业小达人 - 小学课堂作业管理系统</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts - Inter & Classroom style fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#4A90E2',
+                            sky: '#E8F3FF',
+                            mint: '#4ECA9C',
+                            mintLight: '#E6F9F2',
+                            yellow: '#FFB800',
+                            warmYellow: '#FFF8E7',
+                            coral: '#FF6B6B',
+                            purple: '#8E44AD',
+                            cream: '#FAF8F5'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Noto Sans SC', 'sans-serif'],
+                        fun: ['Fredoka', 'Noto Sans SC', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #FAF8F5;
+        }
+        .font-fun {
+            font-family: 'Fredoka', 'Noto Sans SC', sans-serif;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="text-gray-800 antialiased min-h-screen flex flex-col custom-scrollbar">
+
+    <!-- Top Role Switcher Bar -->
+    <header class="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo & App Title -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-blue to-cyan-400 flex items-center justify-center text-white text-xl shadow-md transform hover:rotate-6 transition-transform">
+                        <i class="fa-solid fa-graduation-cap"></i>
+                    </div>
+                    <div>
+                        <span class="font-fun font-bold text-xl text-gray-800 tracking-wide">作业小达人</span>
+                        <span class="hidden sm:inline-block text-xs bg-brand-sky text-brand-blue px-2 py-0.5 rounded-full font-medium ml-2">三(1)班智慧课堂</span>
+                    </div>
+                </div>
+
+                <!-- Role Switcher & User Selector -->
+                <div class="flex items-center space-x-3">
+                    <!-- Student Selector Dropdown (Shown only in Student Mode) -->
+                    <div id="student-selector-container" class="hidden items-center bg-gray-100 rounded-xl px-3 py-1.5 text-xs sm:text-sm">
+                        <i class="fa-solid fa-user-graduate text-brand-mint mr-2"></i>
+                        <span class="text-gray-500 mr-1 hidden md:inline">当前学生:</span>
+                        <select id="student-select" class="bg-transparent font-medium text-gray-700 outline-none cursor-pointer" onchange="switchStudentUser(this.value)">
+                            <!-- Dynamic Student List Options -->
+                        </select>
+                    </div>
+
+                    <!-- Role Switch Toggle Button -->
+                    <div class="bg-amber-50 p-1 rounded-2xl border border-amber-200 flex items-center shadow-inner">
+                        <button id="btn-role-teacher" onclick="setRole('teacher')" class="flex items-center px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 shadow-sm bg-white text-brand-blue">
+                            <i class="fa-solid fa-chalkboard-user mr-1.5"></i>教师端
+                        </button>
+                        <button id="btn-role-student" onclick="setRole('student')" class="flex items-center px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 hover:text-gray-900 transition-all duration-200">
+                            <i class="fa-solid fa-child mr-1.5"></i>学生端
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- ==================== TEACHER VIEW ==================== -->
+        <div id="teacher-view" class="space-y-6">
+            <!-- Top Dashboard Stats Header -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-xl bg-blue-50 text-brand-blue flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-book-open"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 font-medium">布置作业数</p>
+                        <h3 id="stat-teacher-total-hw" class="text-2xl font-bold text-gray-800">0</h3>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-xl bg-green-50 text-brand-mint flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-square-check"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 font-medium">按时提交率</p>
+                        <h3 id="stat-teacher-submit-rate" class="text-2xl font-bold text-gray-800">0%</h3>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-xl bg-amber-50 text-brand-yellow flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 font-medium">待批改作业</p>
+                        <h3 id="stat-teacher-pending-grade" class="text-2xl font-bold text-gray-800">0</h3>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-center space-x-4">
+                    <div class="w-12 h-12 rounded-xl bg-rose-50 text-brand-coral flex items-center justify-center text-xl">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 font-medium">待处理答疑/欠交</p>
+                        <h3 id="stat-teacher-pending-issues" class="text-2xl font-bold text-gray-800">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Interactive Tabs & Actions -->
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div class="border-b border-gray-100 px-6 py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <!-- Navigation Tabs -->
+                    <div class="flex space-x-2 bg-gray-100 p-1 rounded-xl">
+                        <button onclick="switchTeacherTab('homeworks')" id="tab-btn-homeworks" class="px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-white text-brand-blue shadow-sm">
+                            <i class="fa-solid fa-list-check mr-1.5"></i>作业管理
+                        </button>
+                        <button onclick="switchTeacherTab('grading')" id="tab-btn-grading" class="px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-gray-600 hover:text-gray-900">
+                            <i class="fa-solid fa-pen-ruler mr-1.5"></i>全班看板与批改
+                        </button>
+                        <button onclick="switchTeacherTab('feedbacks')" id="tab-btn-feedbacks" class="px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-gray-600 hover:text-gray-900 relative">
+                            <i class="fa-solid fa-comments mr-1.5"></i>答疑与欠交说明
+                            <span id="feedback-badge" class="hidden absolute -top-1 -right-1 bg-brand-coral text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">0</span>
+                        </button>
+                    </div>
+
+                    <!-- Create Homework Button -->
+                    <button onclick="openCreateHomeworkModal()" class="w-full sm:w-auto bg-brand-blue hover:bg-blue-600 text-white font-medium px-4 py-2.5 rounded-xl text-sm flex items-center justify-center shadow-md shadow-blue-100 transition-all">
+                        <i class="fa-solid fa-plus mr-2"></i>布置新作业
+                    </button>
+                </div>
+
+                <!-- Tab 1: Homework List Panel -->
+                <div id="teacher-tab-homeworks" class="p-6">
+                    <div id="teacher-homework-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Homework Cards dynamic rendering -->
+                    </div>
+                </div>
+
+                <!-- Tab 2: Class Roster & Grading Panel -->
+                <div id="teacher-tab-grading" class="p-6 hidden">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
+                        <div class="flex items-center space-x-3 w-full md:w-auto">
+                            <label class="text-sm font-medium text-gray-600 whitespace-nowrap">选择作业项目:</label>
+                            <select id="teacher-grading-hw-select" onchange="renderTeacherGradingBoard()" class="w-full md:w-64 bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-xl p-2.5 focus:ring-brand-blue focus:border-brand-blue">
+                                <!-- Dynamic Options -->
+                            </select>
+                        </div>
+                        <div class="flex items-center space-x-2 text-xs text-gray-500">
+                            <span class="inline-flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 mr-1"></span>已提交</span>
+                            <span class="inline-flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 mr-1"></span>待批改</span>
+                            <span class="inline-flex items-center"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 mr-1"></span>未提交</span>
+                        </div>
+                    </div>
+
+                    <!-- Roster Table -->
+                    <div class="overflow-x-auto rounded-xl border border-gray-100">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-gray-50 text-gray-500 text-xs font-semibold uppercase">
+                                    <th class="p-4">学生姓名</th>
+                                    <th class="p-4">提交状态</th>
+                                    <th class="p-4">提交时间</th>
+                                    <th class="p-4">得分 / 等级</th>
+                                    <th class="p-4">教师评语</th>
+                                    <th class="p-4 text-center">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="grading-table-body" class="divide-y divide-gray-100 text-sm">
+                                <!-- Dynamic Student Roster Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Feedback & Missing Assignment Reports Panel -->
+                <div id="teacher-tab-feedbacks" class="p-6 hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <!-- Homework Questions Column -->
+                        <div class="bg-blue-50/50 p-5 rounded-2xl border border-blue-100">
+                            <h4 class="font-bold text-gray-800 mb-4 flex items-center text-base">
+                                <i class="fa-solid fa-circle-question text-brand-blue mr-2"></i>学生作业疑问
+                            </h4>
+                            <div id="teacher-questions-list" class="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar pr-1">
+                                <!-- Dynamic Questions -->
+                            </div>
+                        </div>
+
+                        <!-- Missing Assignment Reports Column -->
+                        <div class="bg-amber-50/50 p-5 rounded-2xl border border-amber-100">
+                            <h4 class="font-bold text-gray-800 mb-4 flex items-center text-base">
+                                <i class="fa-solid fa-file-signature text-brand-yellow mr-2"></i>欠作业报告与补交说明
+                            </h4>
+                            <div id="teacher-missing-reports-list" class="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar pr-1">
+                                <!-- Dynamic Reports -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== STUDENT VIEW ==================== -->
+        <div id="student-view" class="space-y-6 hidden">
+            <!-- Student Header Greeting & Quick Stats -->
+            <div class="bg-gradient-to-r from-brand-blue via-cyan-500 to-teal-400 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden">
+                <div class="absolute -right-6 -bottom-6 text-white/10 text-9xl font-fun select-none pointer-events-none">
+                    <i class="fa-solid fa-star"></i>
+                </div>
+                <div class="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div class="flex items-center space-x-4">
+                        <div id="student-avatar" class="w-16 h-16 rounded-2xl bg-white text-brand-blue font-fun font-bold text-2xl flex items-center justify-center shadow-md">
+                            小
+                        </div>
+                        <div>
+                            <div class="flex items-center space-x-2">
+                                <h2 id="student-welcome-name" class="text-2xl font-bold">你好，小明同学！</h2>
+                                <span class="bg-white/20 text-xs px-2.5 py-0.5 rounded-full backdrop-blur-sm font-medium">加油学习</span>
+                            </div>
+                            <p class="text-blue-100 text-sm mt-1">今天也要按时高质量完成作业哦！</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-3 bg-white/10 backdrop-blur-md px-4 py-3 rounded-2xl border border-white/20">
+                        <div class="text-center px-2">
+                            <p class="text-xs text-blue-100">待完成</p>
+                            <p id="stat-student-pending" class="text-xl font-bold">0</p>
+                        </div>
+                        <div class="w-px h-8 bg-white/20"></div>
+                        <div class="text-center px-2">
+                            <p class="text-xs text-blue-100">已获得优秀评语</p>
+                            <p id="stat-student-excellent" class="text-xl font-bold">0</p>
+                        </div>
+                        <div class="w-px h-8 bg-white/20"></div>
+                        <div class="text-center px-2">
+                            <p class="text-xs text-blue-100">提交率</p>
+                            <p id="stat-student-rate" class="text-xl font-bold">100%</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Function Tabs -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left 2 Cols: Homework List & Action Center -->
+                <div class="lg:col-span-2 space-y-6">
+                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="font-bold text-gray-800 text-lg flex items-center">
+                                <i class="fa-solid fa-book-open-reader text-brand-blue mr-2"></i>我的作业中心
+                            </h3>
+                            <div class="flex space-x-1 bg-gray-100 p-1 rounded-xl text-xs">
+                                <button onclick="filterStudentHomework('all')" id="filter-btn-all" class="px-3 py-1.5 rounded-lg font-medium bg-white text-gray-800 shadow-sm">全部</button>
+                                <button onclick="filterStudentHomework('pending')" id="filter-btn-pending" class="px-3 py-1.5 rounded-lg font-medium text-gray-600">待完成</button>
+                                <button onclick="filterStudentHomework('submitted')" id="filter-btn-submitted" class="px-3 py-1.5 rounded-lg font-medium text-gray-600">已提交</button>
+                                <button onclick="filterStudentHomework('graded')" id="filter-btn-graded" class="px-3 py-1.5 rounded-lg font-medium text-gray-600">已批改</button>
+                            </div>
+                        </div>
+
+                        <!-- Homework Cards Grid -->
+                        <div id="student-homework-list" class="space-y-4">
+                            <!-- Dynamic Student Homework Items -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right 1 Col: Student Stats, Achievement Badges & Help Center -->
+                <div class="space-y-6">
+                    <!-- Achievement & Score Trend Chart Card -->
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <h4 class="font-bold text-gray-800 mb-4 flex items-center text-sm">
+                            <i class="fa-solid fa-chart-line text-brand-mint mr-2"></i>近期成绩趋势
+                        </h4>
+                        <div class="h-44 w-full">
+                            <canvas id="student-score-chart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Teacher Badges & Stickers Section -->
+                    <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                        <h4 class="font-bold text-gray-800 mb-3 flex items-center text-sm">
+                            <i class="fa-solid fa-award text-brand-yellow mr-2"></i>老师的表扬徽章
+                        </h4>
+                        <div id="student-stickers-container" class="flex flex-wrap gap-2">
+                            <!-- Dynamic Badges -->
+                        </div>
+                    </div>
+
+                    <!-- Quick Action: Report Missing HW or Submit Question -->
+                    <div class="bg-gradient-to-br from-amber-50 to-orange-50 p-6 rounded-2xl border border-amber-100 space-y-3">
+                        <h4 class="font-bold text-gray-800 text-sm flex items-center">
+                            <i class="fa-solid fa-hand-holding-hand text-brand-yellow mr-2"></i>需要老师帮忙？
+                        </h4>
+                        <p class="text-xs text-gray-600">如果作业有不懂的题目，或者特殊原因无法按时交作业，可以随时提交申请。</p>
+                        <div class="flex flex-col space-y-2 pt-2">
+                            <button onclick="openQuestionModal()" class="w-full bg-white hover:bg-gray-50 text-gray-700 font-semibold text-xs py-2.5 px-4 rounded-xl border border-amber-200 shadow-sm flex items-center justify-center">
+                                <i class="fa-solid fa-circle-question text-brand-blue mr-2"></i>向老师提问题
+                            </button>
+                            <button onclick="openMissingReportModal()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-semibold text-xs py-2.5 px-4 rounded-xl shadow-sm flex items-center justify-center">
+                                <i class="fa-solid fa-file-signature mr-2"></i>提交欠作业报告 / 申请补交
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+
+    <!-- Modal 1: Create / Edit Homework Modal (Teacher) -->
+    <div id="modal-homework" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-100 transform transition-all">
+            <div class="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
+                <h3 id="modal-hw-title" class="text-lg font-bold text-gray-800">布置新作业</h3>
+                <button onclick="closeModal('modal-homework')" class="text-gray-400 hover:text-gray-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="form-homework" onsubmit="saveHomework(event)" class="space-y-4">
+                <input type="hidden" id="hw-form-id">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">学科选择</label>
+                    <select id="hw-form-subject" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-blue">
+                        <option value="语文">📚 语文</option>
+                        <option value="数学">📐 数学</option>
+                        <option value="英语">🔤 英语</option>
+                        <option value="科学">🔬 科学</option>
+                        <option value="其他">🎨 其他</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">作业标题</label>
+                    <input type="text" id="hw-form-title" required placeholder="如：第二单元词语默写与应用" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-blue">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">截止时间</label>
+                        <input type="datetime-local" id="hw-form-deadline" required class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-blue">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-600 mb-1">评分体制</label>
+                        <select id="hw-form-scoretype" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-blue">
+                            <option value="100">满分 100分</option>
+                            <option value="grade">等级制 (A+/A/B/C/D)</option>
+                            <option value="5">满分 5星</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">作业要求与说明</label>
+                    <textarea id="hw-form-req" rows="3" required placeholder="请输入详细作业要求..." class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-blue custom-scrollbar"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeModal('modal-homework')" class="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50">取消</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-brand-blue hover:bg-blue-600 text-white text-sm font-medium shadow-md">发布作业</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 2: Submit Homework Modal (Student) -->
+    <div id="modal-submit-hw" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-100">
+            <div class="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
+                <h3 id="modal-submit-title" class="text-lg font-bold text-gray-800">提交作业</h3>
+                <button onclick="closeModal('modal-submit-hw')" class="text-gray-400 hover:text-gray-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="form-submit-hw" onsubmit="handleStudentSubmitHomework(event)" class="space-y-4">
+                <input type="hidden" id="student-submit-hw-id">
+                <div class="bg-gray-50 p-3 rounded-xl border border-gray-100">
+                    <p class="text-xs text-gray-500">作业说明：</p>
+                    <p id="student-submit-hw-desc" class="text-xs text-gray-700 font-medium mt-1"></p>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">作业完成内容/答题文本</label>
+                    <textarea id="student-submit-text" rows="4" required placeholder="请在这里输入你的作业答案或文字说明..." class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-brand-blue custom-scrollbar"></textarea>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">附件/拍照上传（模拟示例）</label>
+                    <div class="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:bg-gray-50 transition-colors cursor-pointer" onclick="triggerMockUpload()">
+                        <i class="fa-solid fa-cloud-arrow-up text-brand-blue text-2xl mb-1"></i>
+                        <p class="text-xs text-gray-600 font-medium">点击模拟上传作业拍照图片</p>
+                        <p id="mock-upload-status" class="text-[10px] text-brand-mint mt-1 hidden"><i class="fa-solid fa-check mr-1"></i>已添加模拟照片: homework_photo.jpg</p>
+                    </div>
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeModal('modal-submit-hw')" class="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50">取消</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-brand-mint hover:bg-emerald-600 text-white text-sm font-medium shadow-md">确认提交</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 3: Grading Homework Modal (Teacher) -->
+    <div id="modal-grade" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-100">
+            <div class="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
+                <h3 class="text-lg font-bold text-gray-800">批改学生作业</h3>
+                <button onclick="closeModal('modal-grade')" class="text-gray-400 hover:text-gray-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="form-grade" onsubmit="saveGrade(event)" class="space-y-4">
+                <input type="hidden" id="grade-hw-id">
+                <input type="hidden" id="grade-student-id">
+                
+                <div class="bg-blue-50/60 p-3.5 rounded-xl border border-blue-100 text-xs space-y-1">
+                    <div class="flex justify-between font-semibold text-gray-700">
+                        <span id="grade-modal-student-name">学生：小明</span>
+                        <span id="grade-modal-hw-title" class="text-brand-blue">作业标题</span>
+                    </div>
+                    <div class="text-gray-600 pt-1">
+                        <span class="font-medium text-gray-500">提交内容：</span>
+                        <p id="grade-modal-submission-text" class="mt-0.5 bg-white p-2 rounded-lg border border-blue-100 text-gray-800"></p>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">分数 / 等级打分</label>
+                    <input type="text" id="grade-input-score" required placeholder="例如：95 或 A+" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-blue">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">快捷鼓励评语（点击快速填入）</label>
+                    <div class="flex flex-wrap gap-1.5 mb-2">
+                        <button type="button" onclick="addQuickComment('字迹工整，值得表扬！🌟')" class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 px-2.5 py-1 rounded-lg border border-amber-200">字迹工整 🌟</button>
+                        <button type="button" onclick="addQuickComment('思路非常清晰，逻辑严密！💡')" class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-800 px-2.5 py-1 rounded-lg border border-blue-200">思路清晰 💡</button>
+                        <button type="button" onclick="addQuickComment('太棒了，全部解答正确！🎉')" class="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg border border-emerald-200">全对表扬 🎉</button>
+                        <button type="button" onclick="addQuickComment('订正得很认真，继续保持！💪')" class="text-xs bg-purple-50 hover:bg-purple-100 text-purple-800 px-2.5 py-1 rounded-lg border border-purple-200">订正认真 💪</button>
+                    </div>
+                    <textarea id="grade-input-comment" rows="3" placeholder="请输入教师评语..." class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-brand-blue custom-scrollbar"></textarea>
+                </div>
+
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeModal('modal-grade')" class="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50">取消</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-brand-blue hover:bg-blue-600 text-white text-sm font-medium shadow-md">保存批改成果</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 4: Student Question Modal -->
+    <div id="modal-question" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-100">
+            <div class="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
+                <h3 class="text-lg font-bold text-gray-800">在线向老师提问</h3>
+                <button onclick="closeModal('modal-question')" class="text-gray-400 hover:text-gray-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="form-question" onsubmit="handleStudentSubmitQuestion(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">选择相关作业</label>
+                    <select id="question-hw-select" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-blue">
+                        <!-- Dynamic HW Options -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">我的疑问 / 不懂的题目</label>
+                    <textarea id="question-text" rows="4" required placeholder="例如：老师，第三大题的第二小题公式我不太明白..." class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-brand-blue custom-scrollbar"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeModal('modal-question')" class="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50">取消</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-brand-blue hover:bg-blue-600 text-white text-sm font-medium shadow-md">发送给老师</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal 5: Student Missing HW Report Modal -->
+    <div id="modal-missing-report" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-gray-100">
+            <div class="flex items-center justify-between mb-4 border-b border-gray-100 pb-3">
+                <h3 class="text-lg font-bold text-gray-800">欠作业报告与补交申请</h3>
+                <button onclick="closeModal('modal-missing-report')" class="text-gray-400 hover:text-gray-600 p-1">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            <form id="form-missing-report" onsubmit="handleStudentSubmitMissingReport(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">选择涉及作业</label>
+                    <select id="missing-hw-select" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-blue">
+                        <!-- Dynamic HW Options -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">未按时提交原因</label>
+                    <select id="missing-reason-select" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-blue">
+                        <option value="身体不适/请假">😷 身体不适 / 生病请假</option>
+                        <option value="作业本遗忘在校/在家">🎒 作业本遗忘在学校/家里</option>
+                        <option value="家中有事/遗漏">🏠 临时有事 / 忘记有该项作业</option>
+                        <option value="其他原因">📝 其他原因</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1">详细情况说明及预计补交时间</label>
+                    <textarea id="missing-detail-text" rows="3" required placeholder="请说明具体原因，并承诺什么时候补交给老师..." class="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:outline-none focus:border-brand-blue custom-scrollbar"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-2">
+                    <button type="button" onclick="closeModal('modal-missing-report')" class="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50">取消</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-medium shadow-md">提交报告</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification Element -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <script>
+        /* Global Data Architecture & Initial Storage setup */
+        const DEFAULT_STUDENTS = [
+            { id: 's1', name: '小明', avatar: '明' },
+            { id: 's2', name: '小红', avatar: '红' },
+            { id: 's3', name: '小华', avatar: '华' },
+            { id: 's4', name: '小强', avatar: '强' },
+            { id: 's5', name: '小莉', avatar: '莉' }
+        ];
+
+        const DEFAULT_HOMEWORKS = [
+            {
+                id: 'hw_101',
+                subject: '语文',
+                title: '第二单元词语默写与造句',
+                deadline: '2026-10-15T18:00',
+                scoreType: '100',
+                req: '1. 认真默写第二单元生字词各2遍；2. 选择其中3个词语造句，写在作业本上。',
+                hidden: false,
+                createdAt: '2026-10-10'
+            },
+            {
+                id: 'hw_102',
+                subject: '数学',
+                title: '分数的加减法同步练习册P32-33',
+                deadline: '2026-10-14T20:00',
+                scoreType: '100',
+                req: '完成练习册第32-33页所有题目，注意书写规范，需要保留计算过程。',
+                hidden: false,
+                createdAt: '2026-10-11'
+            },
+            {
+                id: 'hw_103',
+                subject: '英语',
+                title: 'Unit 3 课文朗读与录音打卡',
+                deadline: '2026-10-13T21:00',
+                scoreType: 'grade',
+                req: '熟读 Unit 3 Story time 课文，大声朗读并上传一段音频或视频。',
+                hidden: false,
+                createdAt: '2026-10-12'
+            }
+        ];
+
+        const DEFAULT_SUBMISSIONS = [
+            {
+                hwId: 'hw_101',
+                studentId: 's1',
+                status: 'graded', // pending | submitted | graded | exempted
+                submittedAt: '2026-10-11 15:30',
+                content: '我已经按要求默写完词语，并造句：1. 阳光明媚，我们去郊游。',
+                hasPhoto: true,
+                score: '98',
+                comment: '字迹工整，值得表扬！🌟'
+            },
+            {
+                hwId: 'hw_101',
+                studentId: 's2',
+                status: 'submitted',
+                submittedAt: '2026-10-11 16:20',
+                content: '老师，我完成了默写和造句作业。',
+                hasPhoto: true,
+                score: '',
+                comment: ''
+            },
+            {
+                hwId: 'hw_102',
+                studentId: 's1',
+                status: 'graded',
+                submittedAt: '2026-10-12 10:15',
+                content: '完成了P32-33所有练习题。',
+                hasPhoto: true,
+                score: '100',
+                comment: '思路非常清晰，逻辑严密！💡'
+            },
+            {
+                hwId: 'hw_103',
+                studentId: 's3',
+                status: 'graded',
+                submittedAt: '2026-10-12 11:00',
+                content: '朗读音频已准备好。',
+                hasPhoto: false,
+                score: 'A+',
+                comment: '发音非常标准，充满感情！🎉'
+            }
+        ];
+
+        const DEFAULT_QUESTIONS = [
+            {
+                id: 'q_1',
+                hwId: 'hw_102',
+                studentId: 's1',
+                studentName: '小明',
+                question: '老师，数学练习册P33第5题异分母通分我有点混淆，能讲解一下吗？',
+                reply: '好的小明，明天数学课前老师会在黑板上专门梳理一下通分的最小公倍数算法哦！',
+                createdAt: '2026-10-12 09:30'
+            }
+        ];
+
+        const DEFAULT_MISSING_REPORTS = [
+            {
+                id: 'mr_1',
+                hwId: 'hw_102',
+                studentId: 's4',
+                studentName: '小强',
+                reason: '作业本遗忘在校/在家',
+                detail: '老师好，我昨晚把数学练习册忘在学校抽屉里了，今天早自习补写完，今天放学前补交给您！',
+                status: 'pending', // pending | approved
+                createdAt: '2026-10-12 08:10'
+            }
+        ];
+
+        /* State Initialization */
+        let appState = {
+            role: 'teacher', // 'teacher' | 'student'
+            currentStudentId: 's1',
+            teacherTab: 'homeworks', // 'homeworks' | 'grading' | 'feedbacks'
+            studentFilter: 'all',
+            students: [],
+            homeworks: [],
+            submissions: [],
+            questions: [],
+            missingReports: []
+        };
+
+        let chartInstance = null;
+        let isMockUploaded = false;
+
+        /* Core Functions - LocalStorage Persistence */
+        function initData() {
+            if (!localStorage.getItem('hw_app_initialized')) {
+                localStorage.setItem('hw_students', JSON.stringify(DEFAULT_STUDENTS));
+                localStorage.setItem('hw_homeworks', JSON.stringify(DEFAULT_HOMEWORKS));
+                localStorage.setItem('hw_submissions', JSON.stringify(DEFAULT_SUBMISSIONS));
+                localStorage.setItem('hw_questions', JSON.stringify(DEFAULT_QUESTIONS));
+                localStorage.setItem('hw_missing_reports', JSON.stringify(DEFAULT_MISSING_REPORTS));
+                localStorage.setItem('hw_app_initialized', 'true');
+            }
+
+            appState.students = JSON.parse(localStorage.getItem('hw_students')) || DEFAULT_STUDENTS;
+            appState.homeworks = JSON.parse(localStorage.getItem('hw_homeworks')) || DEFAULT_HOMEWORKS;
+            appState.submissions = JSON.parse(localStorage.getItem('hw_submissions')) || DEFAULT_SUBMISSIONS;
+            appState.questions = JSON.parse(localStorage.getItem('hw_questions')) || DEFAULT_QUESTIONS;
+            appState.missingReports = JSON.parse(localStorage.getItem('hw_missing_reports')) || DEFAULT_MISSING_REPORTS;
+
+            populateStudentSelect();
+            renderApp();
+        }
+
+        function saveData(key) {
+            if (key === 'homeworks') localStorage.setItem('hw_homeworks', JSON.stringify(appState.homeworks));
+            if (key === 'submissions') localStorage.setItem('hw_submissions', JSON.stringify(appState.submissions));
+            if (key === 'questions') localStorage.setItem('hw_questions', JSON.stringify(appState.questions));
+            if (key === 'missingReports') localStorage.setItem('hw_missing_reports', JSON.stringify(appState.missingReports));
+        }
+
+        /* Role & View Management */
+        function setRole(role) {
+            appState.role = role;
+            const btnTeacher = document.getElementById('btn-role-teacher');
+            const btnStudent = document.getElementById('btn-role-student');
+            const teacherView = document.getElementById('teacher-view');
+            const studentView = document.getElementById('student-view');
+            const studentSelector = document.getElementById('student-selector-container');
+
+            if (role === 'teacher') {
+                btnTeacher.className = 'flex items-center px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 shadow-sm bg-white text-brand-blue';
+                btnStudent.className = 'flex items-center px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 hover:text-gray-900 transition-all duration-200';
+                teacherView.classList.remove('hidden');
+                studentView.classList.add('hidden');
+                studentSelector.classList.add('hidden');
+            } else {
+                btnStudent.className = 'flex items-center px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 shadow-sm bg-white text-brand-blue';
+                btnTeacher.className = 'flex items-center px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold text-gray-600 hover:text-gray-900 transition-all duration-200';
+                teacherView.classList.add('hidden');
+                studentView.classList.remove('hidden');
+                studentSelector.classList.remove('hidden');
+                studentSelector.classList.add('flex');
+            }
+            renderApp();
+        }
+
+        function populateStudentSelect() {
+            const select = document.getElementById('student-select');
+            select.innerHTML = appState.students.map(s => 
+                `<option value="${s.id}">${s.name}</option>`
+            ).join('');
+            select.value = appState.currentStudentId;
+        }
+
+        function switchStudentUser(studentId) {
+            appState.currentStudentId = studentId;
+            showToast(`已切换为学生: ${appState.students.find(s => s.id === studentId).name}`, 'info');
+            renderApp();
+        }
+
+        function switchTeacherTab(tab) {
+            appState.teacherTab = tab;
+            ['homeworks', 'grading', 'feedbacks'].forEach(t => {
+                const btn = document.getElementById(`tab-btn-${t}`);
+                const panel = document.getElementById(`teacher-tab-${t}`);
+                if (t === tab) {
+                    btn.className = 'px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg bg-white text-brand-blue shadow-sm';
+                    panel.classList.remove('hidden');
+                } else {
+                    btn.className = 'px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg text-gray-600 hover:text-gray-900';
+                    panel.classList.add('hidden');
+                }
+            });
+            renderTeacherView();
+        }
+
+        function renderApp() {
+            if (appState.role === 'teacher') {
+                renderTeacherView();
+            } else {
+                renderStudentView();
+            }
+        }
+
+        /* Render Teacher View Components */
+        function renderTeacherView() {
+            // Update Header Stats
+            const totalHw = appState.homeworks.filter(h => !h.hidden).length;
+            document.getElementById('stat-teacher-total-hw').innerText = totalHw;
+
+            let totalExpectedSubmissions = totalHw * appState.students.length;
+            let actualSubmissions = appState.submissions.length;
+            let rate = totalExpectedSubmissions > 0 ? Math.round((actualSubmissions / totalExpectedSubmissions) * 100) : 0;
+            document.getElementById('stat-teacher-submit-rate').innerText = `${rate}%`;
+
+            let pendingGrade = appState.submissions.filter(s => s.status === 'submitted').length;
+            document.getElementById('stat-teacher-pending-grade').innerText = pendingGrade;
+
+            let pendingQuestions = appState.questions.filter(q => !q.reply).length;
+            let pendingReports = appState.missingReports.filter(r => r.status === 'pending').length;
+            let pendingIssues = pendingQuestions + pendingReports;
+            document.getElementById('stat-teacher-pending-issues').innerText = pendingIssues;
+
+            const feedbackBadge = document.getElementById('feedback-badge');
+            if (pendingIssues > 0) {
+                feedbackBadge.innerText = pendingIssues;
+                feedbackBadge.classList.remove('hidden');
+            } else {
+                feedbackBadge.classList.add('hidden');
+            }
+
+            // Render current active tab
+            if (appState.teacherTab === 'homeworks') renderTeacherHomeworkList();
+            if (appState.teacherTab === 'grading') populateGradingSelectAndRender();
+            if (appState.teacherTab === 'feedbacks') renderTeacherFeedbacks();
+        }
+
+        function renderTeacherHomeworkList() {
+            const container = document.getElementById('teacher-homework-list');
+            const activeHomeworks = appState.homeworks.filter(h => !h.hidden);
+
+            if (activeHomeworks.length === 0) {
+                container.innerHTML = `<div class="col-span-full text-center py-12 text-gray-400">尚无布置的作业，点击右上角“布置新作业”开始吧！</div>`;
+                return;
+            }
+
+            container.innerHTML = activeHomeworks.map(hw => {
+                const subCount = appState.submissions.filter(s => s.hwId === hw.id && (s.status === 'submitted' || s.status === 'graded')).length;
+                const formattedDate = hw.deadline.replace('T', ' ');
+
+                return `
+                <div class="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm hover:shadow-md transition-shadow relative flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="px-2.5 py-1 rounded-lg text-xs font-bold ${getSubjectBadgeColor(hw.subject)}">${hw.subject}</span>
+                            <span class="text-xs text-gray-400"><i class="fa-regular fa-clock mr-1"></i>${formattedDate} 截止</span>
+                        </div>
+                        <h4 class="font-bold text-gray-800 text-base mb-2">${hw.title}</h4>
+                        <p class="text-xs text-gray-600 mb-4 line-clamp-2">${hw.req}</p>
+                    </div>
+
+                    <div>
+                        <!-- Submission Mini Progress Bar -->
+                        <div class="mb-4">
+                            <div class="flex justify-between text-xs text-gray-500 mb-1">
+                                <span>提交进度</span>
+                                <span class="font-semibold text-gray-700">${subCount}/${appState.students.length}人</span>
+                            </div>
+                            <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                                <div class="bg-brand-blue h-2 rounded-full" style="width: ${(subCount/appState.students.length)*100}%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="flex items-center justify-between border-t border-gray-50 pt-3 text-xs">
+                            <button onclick="quickSelectHomeworkToGrade('${hw.id}')" class="text-brand-blue font-semibold hover:underline">
+                                <i class="fa-solid fa-list-check mr-1"></i>查看与批改
+                            </button>
+                            <div class="flex space-x-2 text-gray-400">
+                                <button onclick="editHomework('${hw.id}')" class="hover:text-gray-600"><i class="fa-solid fa-pen"></i></button>
+                                <button onclick="deleteHomework('${hw.id}')" class="hover:text-rose-500"><i class="fa-solid fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function populateGradingSelectAndRender() {
+            const select = document.getElementById('teacher-grading-hw-select');
+            const activeHomeworks = appState.homeworks.filter(h => !h.hidden);
+            
+            if (activeHomeworks.length === 0) {
+                select.innerHTML = '<option value="">暂无作业</option>';
+                renderTeacherGradingBoard();
+                return;
+            }
+
+            const currentVal = select.value;
+            select.innerHTML = activeHomeworks.map(h => `<option value="${h.id}">${h.subject} - ${h.title}</option>`).join('');
+            if (currentVal && activeHomeworks.some(h => h.id === currentVal)) {
+                select.value = currentVal;
+            }
+            renderTeacherGradingBoard();
+        }
+
+        function renderTeacherGradingBoard() {
+            const hwId = document.getElementById('teacher-grading-hw-select').value;
+            const tbody = document.getElementById('grading-table-body');
+
+            if (!hwId) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-8 text-center text-gray-400">请先选择一项作业项目以查看全班进度</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = appState.students.map(student => {
+                const sub = appState.submissions.find(s => s.hwId === hwId && s.studentId === student.id);
+                
+                let statusBadge = '';
+                let submitTime = '-';
+                let scoreText = '-';
+                let commentText = '-';
+
+                if (!sub) {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-600">未提交</span>`;
+                } else if (sub.status === 'submitted') {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-600">待批改</span>`;
+                    submitTime = sub.submittedAt;
+                } else if (sub.status === 'graded') {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600">已批改</span>`;
+                    submitTime = sub.submittedAt;
+                    scoreText = `<span class="font-bold text-gray-800">${sub.score}</span>`;
+                    commentText = `<span class="text-xs text-gray-600">${sub.comment || '无评语'}</span>`;
+                } else if (sub.status === 'exempted') {
+                    statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">已免交</span>`;
+                }
+
+                return `
+                <tr class="hover:bg-gray-50/80 transition-colors">
+                    <td class="p-4 font-semibold text-gray-800 flex items-center space-x-2">
+                        <div class="w-7 h-7 rounded-full bg-brand-sky text-brand-blue flex items-center justify-center text-xs font-bold">
+                            ${student.avatar}
+                        </div>
+                        <span>${student.name}</span>
+                    </td>
+                    <td class="p-4">${statusBadge}</td>
+                    <td class="p-4 text-xs text-gray-500">${submitTime}</td>
+                    <td class="p-4">${scoreText}</td>
+                    <td class="p-4 max-w-xs truncate">${commentText}</td>
+                    <td class="p-4 text-center">
+                        <div class="flex items-center justify-center space-x-2">
+                            ${sub && sub.status !== 'exempted' ? 
+                                `<button onclick="openGradeModal('${hwId}', '${student.id}')" class="px-3 py-1 bg-brand-blue hover:bg-blue-600 text-white rounded-lg text-xs font-medium shadow-sm">
+                                    ${sub.status === 'graded' ? '修改批改' : '打分批改'}
+                                </button>` : 
+                                `<button onclick="toggleExemptStatus('${hwId}', '${student.id}')" class="px-2.5 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg text-xs">
+                                    一键标记免交
+                                </button>`
+                            }
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+        }
+
+        function renderTeacherFeedbacks() {
+            // Render Student Questions
+            const questionsContainer = document.getElementById('teacher-questions-list');
+            if (appState.questions.length === 0) {
+                questionsContainer.innerHTML = `<p class="text-xs text-gray-400 py-4 text-center">暂无学生提问</p>`;
+            } else {
+                questionsContainer.innerHTML = appState.questions.map(q => {
+                    const hw = appState.homeworks.find(h => h.id === q.hwId);
+                    return `
+                    <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-2">
+                        <div class="flex justify-between items-start text-xs">
+                            <span class="font-bold text-gray-800">${q.studentName} <span class="font-normal text-gray-500">提问 (${hw ? hw.subject : '作业'})</span></span>
+                            <span class="text-gray-400">${q.createdAt}</span>
+                        </div>
+                        <p class="text-xs text-gray-700 bg-gray-50 p-2.5 rounded-lg border border-gray-100">${q.question}</p>
+                        ${q.reply ? 
+                            `<div class="text-xs text-brand-blue bg-blue-50 p-2 rounded-lg"><span class="font-semibold">教师回复：</span>${q.reply}</div>` :
+                            `<div class="flex space-x-2 pt-1">
+                                <input type="text" id="reply-input-${q.id}" placeholder="输入答疑回复..." class="flex-1 text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-brand-blue">
+                                <button onclick="handleTeacherReplyQuestion('${q.id}')" class="bg-brand-blue hover:bg-blue-600 text-white text-xs px-3 py-1.5 rounded-lg font-medium">回复</button>
+                            </div>`
+                        }
+                    </div>`;
+                }).join('');
+            }
+
+            // Render Missing Assignment Reports
+            const reportsContainer = document.getElementById('teacher-missing-reports-list');
+            if (appState.missingReports.length === 0) {
+                reportsContainer.innerHTML = `<p class="text-xs text-gray-400 py-4 text-center">暂无欠作业报告</p>`;
+            } else {
+                reportsContainer.innerHTML = appState.missingReports.map(r => {
+                    const hw = appState.homeworks.find(h => h.id === r.hwId);
+                    return `
+                    <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm space-y-2">
+                        <div class="flex justify-between items-start text-xs">
+                            <span class="font-bold text-gray-800">${r.studentName} <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-normal">${r.reason}</span></span>
+                            <span class="text-gray-400">${r.createdAt}</span>
+                        </div>
+                        <p class="text-xs text-gray-600">涉事作业：<span class="font-semibold text-gray-800">${hw ? hw.title : '已删除作业'}</span></p>
+                        <p class="text-xs text-gray-700 bg-amber-50/50 p-2.5 rounded-lg border border-amber-100">${r.detail}</p>
+                        <div class="flex justify-between items-center pt-1 text-xs">
+                            <span class="text-gray-400">状态：${r.status === 'approved' ? '<span class="text-emerald-600 font-semibold">已审核批准补交</span>' : '<span class="text-amber-600">待审批</span>'}</span>
+                            ${r.status === 'pending' ? `<button onclick="approveMissingReport('${r.id}')" class="bg-amber-500 hover:bg-amber-600 text-white text-xs px-3 py-1.5 rounded-lg font-medium">批复同意补交</button>` : ''}
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+        }
+
+        /* Render Student View Components */
+        function renderStudentView() {
+            const student = appState.students.find(s => s.id === appState.currentStudentId) || appState.students[0];
+            document.getElementById('student-avatar').innerText = student.avatar;
+            document.getElementById('student-welcome-name').innerText = `你好，${student.name}同学！`;
+
+            // Active homeworks for student
+            const activeHomeworks = appState.homeworks.filter(h => !h.hidden);
+            const studentSubs = appState.submissions.filter(s => s.studentId === student.id);
+
+            const pendingCount = activeHomeworks.filter(h => !studentSubs.some(s => s.hwId === h.id && (s.status === 'submitted' || s.status === 'graded'))).length;
+            const excellentCount = studentSubs.filter(s => s.comment && (s.comment.includes('🌟') || s.comment.includes('💡') || s.comment.includes('🎉'))).length;
+
+            document.getElementById('stat-student-pending').innerText = pendingCount;
+            document.getElementById('stat-student-excellent').innerText = excellentCount;
+            
+            const submitRate = activeHomeworks.length > 0 ? Math.round(((activeHomeworks.length - pendingCount) / activeHomeworks.length) * 100) : 100;
+            document.getElementById('stat-student-rate').innerText = `${submitRate}%`;
+
+            renderStudentHomeworkList(activeHomeworks, studentSubs);
+            renderStudentBadges(studentSubs);
+            renderStudentChart(studentSubs);
+        }
+
+        function renderStudentHomeworkList(homeworks, studentSubs) {
+            const container = document.getElementById('student-homework-list');
+            let filtered = homeworks;
+
+            if (appState.studentFilter === 'pending') {
+                filtered = homeworks.filter(h => !studentSubs.some(s => s.hwId === h.id && (s.status === 'submitted' || s.status === 'graded')));
+            } else if (appState.studentFilter === 'submitted') {
+                filtered = homeworks.filter(h => studentSubs.some(s => s.hwId === h.id && s.status === 'submitted'));
+            } else if (appState.studentFilter === 'graded') {
+                filtered = homeworks.filter(h => studentSubs.some(s => s.hwId === h.id && s.status === 'graded'));
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="text-center py-10 text-gray-400 text-sm">此分类下暂无作业记录哦~</div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(hw => {
+                const sub = studentSubs.find(s => s.hwId === hw.id);
+                let badge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-600">待完成</span>`;
+                let actionBtn = `<button onclick="openSubmitHomeworkModal('${hw.id}')" class="px-4 py-2 bg-brand-blue hover:bg-blue-600 text-white rounded-xl text-xs font-semibold shadow-sm">提交作业</button>`;
+
+                if (sub) {
+                    if (sub.status === 'submitted') {
+                        badge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-brand-blue">已提交·等待老师批改</span>`;
+                        actionBtn = `<button onclick="openSubmitHomeworkModal('${hw.id}')" class="px-3 py-1.5 border border-gray-200 hover:bg-gray-50 text-gray-600 rounded-xl text-xs">修改提交</button>`;
+                    } else if (sub.status === 'graded') {
+                        badge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-600">已批改</span>`;
+                        actionBtn = `<span class="text-sm font-bold text-brand-blue">成绩: ${sub.score}</span>`;
+                    }
+                }
+
+                return `
+                <div class="border border-gray-100 rounded-2xl p-4 hover:border-blue-100 transition-colors space-y-3 bg-white">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="px-2.5 py-0.5 rounded-md text-xs font-bold ${getSubjectBadgeColor(hw.subject)}">${hw.subject}</span>
+                            <h4 class="font-bold text-gray-800 text-sm sm:text-base">${hw.title}</h4>
+                        </div>
+                        ${badge}
+                    </div>
+
+                    <p class="text-xs text-gray-600 bg-gray-50 p-2.5 rounded-xl">${hw.req}</p>
+
+                    ${sub && sub.status === 'graded' ? `
+                        <div class="bg-emerald-50/60 p-3 rounded-xl border border-emerald-100 text-xs space-y-1">
+                            <p class="font-semibold text-emerald-800"><i class="fa-solid fa-comment-dots mr-1"></i>教师评语：</p>
+                            <p class="text-gray-700">${sub.comment || '表现优秀，继续努力！'}</p>
+                        </div>
+                    ` : ''}
+
+                    <div class="flex items-center justify-between pt-1 border-t border-gray-50 text-xs text-gray-400">
+                        <span><i class="fa-regular fa-clock mr-1"></i>截止: ${hw.deadline.replace('T', ' ')}</span>
+                        <div>${actionBtn}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderStudentBadges(studentSubs) {
+            const container = document.getElementById('student-stickers-container');
+            const comments = studentSubs.filter(s => s.comment).map(s => s.comment);
+
+            if (comments.length === 0) {
+                container.innerHTML = `<p class="text-xs text-gray-400 py-2">还没有获得奖章，快去提交一份优秀的作业吧！</p>`;
+                return;
+            }
+
+            container.innerHTML = comments.map(c => `
+                <div class="bg-amber-50 border border-amber-200 text-amber-900 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center shadow-xs">
+                    <i class="fa-solid fa-medal text-brand-yellow mr-1.5"></i>${c}
+                </div>
+            `).join('');
+        }
+
+        function renderStudentChart(studentSubs) {
+            const ctx = document.getElementById('student-score-chart').getContext('2d');
+            const gradedSubs = studentSubs.filter(s => s.status === 'graded' && !isNaN(parseInt(s.score)));
+
+            const labels = gradedSubs.map((s, i) => `作业${i+1}`);
+            const data = gradedSubs.map(s => parseInt(s.score));
+
+            if (chartInstance) chartInstance.destroy();
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels.length > 0 ? labels : ['近期无分数记录'],
+                    datasets: [{
+                        label: '得分走势',
+                        data: data.length > 0 ? data : [0],
+                        borderColor: '#4A90E2',
+                        backgroundColor: 'rgba(74, 144, 226, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 5,
+                        pointBackgroundColor: '#FFB800'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { min: 60, max: 100, ticks: { stepSize: 10 } }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function filterStudentHomework(filter) {
+            appState.studentFilter = filter;
+            ['all', 'pending', 'submitted', 'graded'].forEach(f => {
+                const btn = document.getElementById(`filter-btn-${f}`);
+                if (f === filter) {
+                    btn.className = 'px-3 py-1.5 rounded-lg font-medium bg-white text-gray-800 shadow-sm';
+                } else {
+                    btn.className = 'px-3 py-1.5 rounded-lg font-medium text-gray-600';
+                }
+            });
+            renderStudentView();
+        }
+
+
+        // Modal Open / Close Helpers
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        // Teacher Actions
+        function openCreateHomeworkModal() {
+            document.getElementById('modal-hw-title').innerText = '布置新作业';
+            document.getElementById('hw-form-id').value = '';
+            document.getElementById('form-homework').reset();
+            openModal('modal-homework');
+        }
+
+        function saveHomework(e) {
+            e.preventDefault();
+            const id = document.getElementById('hw-form-id').value || `hw_${Date.now()}`;
+            const subject = document.getElementById('hw-form-subject').value;
+            const title = document.getElementById('hw-form-title').value;
+            const deadline = document.getElementById('hw-form-deadline').value;
+            const scoreType = document.getElementById('hw-form-scoretype').value;
+            const req = document.getElementById('hw-form-req').value;
+
+            const existingIndex = appState.homeworks.findIndex(h => h.id === id);
+            const hwObj = { id, subject, title, deadline, scoreType, req, hidden: false, createdAt: new Date().toISOString().split('T')[0] };
+
+            if (existingIndex >= 0) {
+                appState.homeworks[existingIndex] = hwObj;
+                showToast('作业更新成功！', 'success');
+            } else {
+                appState.homeworks.unshift(hwObj);
+                showToast('新作业布置成功！', 'success');
+            }
+
+            saveData('homeworks');
+            closeModal('modal-homework');
+            renderTeacherView();
+        }
+
+        function editHomework(id) {
+            const hw = appState.homeworks.find(h => h.id === id);
+            if (!hw) return;
+            document.getElementById('modal-hw-title').innerText = '编辑作业项目';
+            document.getElementById('hw-form-id').value = hw.id;
+            document.getElementById('hw-form-subject').value = hw.subject;
+            document.getElementById('hw-form-title').value = hw.title;
+            document.getElementById('hw-form-deadline').value = hw.deadline;
+            document.getElementById('hw-form-scoretype').value = hw.scoreType;
+            document.getElementById('hw-form-req').value = hw.req;
+            openModal('modal-homework');
+        }
+
+        function deleteHomework(id) {
+            if (confirm('确定要删除这项作业吗？')) {
+                appState.homeworks = appState.homeworks.filter(h => h.id !== id);
+                saveData('homeworks');
+                showToast('作业已安全删除', 'info');
+                renderTeacherView();
+            }
+        }
+
+        function quickSelectHomeworkToGrade(hwId) {
+            switchTeacherTab('grading');
+            document.getElementById('teacher-grading-hw-select').value = hwId;
+            renderTeacherGradingBoard();
+        }
+
+        function openGradeModal(hwId, studentId) {
+            const hw = appState.homeworks.find(h => h.id === hwId);
+            const student = appState.students.find(s => s.id === studentId);
+            const sub = appState.submissions.find(s => s.hwId === hwId && s.studentId === studentId);
+
+            document.getElementById('grade-hw-id').value = hwId;
+            document.getElementById('grade-student-id').value = studentId;
+            document.getElementById('grade-modal-student-name').innerText = `学生：${student.name}`;
+            document.getElementById('grade-modal-hw-title').innerText = `${hw.subject} - ${hw.title}`;
+            document.getElementById('grade-modal-submission-text').innerText = sub ? sub.content : '（学生通过线下作业本提交）';
+
+            document.getElementById('grade-input-score').value = sub ? sub.score : '95';
+            document.getElementById('grade-input-comment').value = sub ? sub.comment : '';
+
+            openModal('modal-grade');
+        }
+
+        function addQuickComment(text) {
+            const input = document.getElementById('grade-input-comment');
+            input.value = input.value ? `${input.value} ${text}` : text;
+        }
+
+        function saveGrade(e) {
+            e.preventDefault();
+            const hwId = document.getElementById('grade-hw-id').value;
+            const studentId = document.getElementById('grade-student-id').value;
+            const score = document.getElementById('grade-input-score').value;
+            const comment = document.getElementById('grade-input-comment').value;
+
+            let subIndex = appState.submissions.findIndex(s => s.hwId === hwId && s.studentId === studentId);
+            if (subIndex >= 0) {
+                appState.submissions[subIndex].status = 'graded';
+                appState.submissions[subIndex].score = score;
+                appState.submissions[subIndex].comment = comment;
+            } else {
+                appState.submissions.push({
+                    hwId, studentId, status: 'graded', submittedAt: new Date().toLocaleString(), content: '线下作业登记', hasPhoto: false, score, comment
+                });
+            }
+
+            saveData('submissions');
+            showToast('打分及评语保存成功！', 'success');
+            closeModal('modal-grade');
+            renderTeacherView();
+        }
+
+        function toggleExemptStatus(hwId, studentId) {
+            appState.submissions.push({
+                hwId, studentId, status: 'exempted', submittedAt: '-', content: '老师标记免交', hasPhoto: false, score: '免交', comment: '因特殊情况免交该项作业'
+            });
+            saveData('submissions');
+            showToast('已成功标记为免交', 'info');
+            renderTeacherGradingBoard();
+        }
+
+        function handleTeacherReplyQuestion(qId) {
+            const replyVal = document.getElementById(`reply-input-${qId}`).value;
+            if (!replyVal) return;
+            const q = appState.questions.find(item => item.id === qId);
+            if (q) {
+                q.reply = replyVal;
+                saveData('questions');
+                showToast('答疑回复已发送给学生', 'success');
+                renderTeacherFeedbacks();
+            }
+        }
+
+        function approveMissingReport(rId) {
+            const r = appState.missingReports.find(item => item.id === rId);
+            if (r) {
+                r.status = 'approved';
+                saveData('missingReports');
+                showToast('已批准学生的补交申请', 'success');
+                renderTeacherFeedbacks();
+            }
+        }
+
+        // Student Actions
+        function openSubmitHomeworkModal(hwId) {
+            const hw = appState.homeworks.find(h => h.id === hwId);
+            if (!hw) return;
+
+            document.getElementById('student-submit-hw-id').value = hw.id;
+            document.getElementById('modal-submit-title').innerText = `提交作业: ${hw.title}`;
+            document.getElementById('student-submit-hw-desc').innerText = hw.req;
+
+            const existingSub = appState.submissions.find(s => s.hwId === hwId && s.studentId === appState.currentStudentId);
+            document.getElementById('student-submit-text').value = existingSub ? existingSub.content : '';
+
+            isMockUploaded = false;
+            document.getElementById('mock-upload-status').classList.add('hidden');
+
+            openModal('modal-submit-hw');
+        }
+
+        function triggerMockUpload() {
+            isMockUploaded = true;
+            document.getElementById('mock-upload-status').classList.remove('hidden');
+            showToast('模拟作业照片上传成功！', 'info');
+        }
+
+        function handleStudentSubmitHomework(e) {
+            e.preventDefault();
+            const hwId = document.getElementById('student-submit-hw-id').value;
+            const content = document.getElementById('student-submit-text').value;
+
+            let subIndex = appState.submissions.findIndex(s => s.hwId === hwId && s.studentId === appState.currentStudentId);
+            const newSub = {
+                hwId,
+                studentId: appState.currentStudentId,
+                status: 'submitted',
+                submittedAt: new Date().toLocaleString([], { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' }),
+                content,
+                hasPhoto: isMockUploaded,
+                score: '',
+                comment: ''
+            };
+
+            if (subIndex >= 0) {
+                appState.submissions[subIndex] = newSub;
+            } else {
+                appState.submissions.push(newSub);
+            }
+
+            saveData('submissions');
+            showToast('🎉 作业提交成功！棒棒哒！', 'success');
+            closeModal('modal-submit-hw');
+            renderStudentView();
+        }
+
+        function openQuestionModal() {
+            const select = document.getElementById('question-hw-select');
+            select.innerHTML = appState.homeworks.filter(h => !h.hidden).map(h => `<option value="${h.id}">${h.subject} - ${h.title}</option>`).join('');
+            document.getElementById('question-text').value = '';
+            openModal('modal-question');
+        }
+
+        function handleStudentSubmitQuestion(e) {
+            e.preventDefault();
+            const hwId = document.getElementById('question-hw-select').value;
+            const question = document.getElementById('question-text').value;
+            const student = appState.students.find(s => s.id === appState.currentStudentId);
+
+            appState.questions.unshift({
+                id: `q_${Date.now()}`,
+                hwId,
+                studentId: appState.currentStudentId,
+                studentName: student.name,
+                question,
+                reply: '',
+                createdAt: new Date().toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+            });
+
+            saveData('questions');
+            showToast('问题已发给老师，请留意教师回复', 'success');
+            closeModal('modal-question');
+        }
+
+        function openMissingReportModal() {
+            const select = document.getElementById('missing-hw-select');
+            select.innerHTML = appState.homeworks.filter(h => !h.hidden).map(h => `<option value="${h.id}">${h.subject} - ${h.title}</option>`).join('');
+            document.getElementById('missing-detail-text').value = '';
+            openModal('modal-missing-report');
+        }
+
+        function handleStudentSubmitMissingReport(e) {
+            e.preventDefault();
+            const hwId = document.getElementById('missing-hw-select').value;
+            const reason = document.getElementById('missing-reason-select').value;
+            const detail = document.getElementById('missing-detail-text').value;
+            const student = appState.students.find(s => s.id === appState.currentStudentId);
+
+            appState.missingReports.unshift({
+                id: `mr_${Date.now()}`,
+                hwId,
+                studentId: appState.currentStudentId,
+                studentName: student.name,
+                reason,
+                detail,
+                status: 'pending',
+                createdAt: new Date().toLocaleString([], { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+            });
+
+            saveData('missingReports');
+            showToast('欠作业报告已提交给老师', 'info');
+            closeModal('modal-missing-report');
+        }
+
+        /* Utility Helper Functions */
+        function getSubjectBadgeColor(subject) {
+            switch(subject) {
+                case '语文': return 'bg-amber-100 text-amber-800';
+                case '数学': return 'bg-blue-100 text-blue-800';
+                case '英语': return 'bg-emerald-100 text-emerald-800';
+                case '科学': return 'bg-purple-100 text-purple-800';
+                default: return 'bg-gray-100 text-gray-800';
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-gray-800 text-white';
+            let icon = 'fa-circle-info';
+            if (type === 'success') { bgClass = 'bg-emerald-600 text-white'; icon = 'fa-circle-check'; }
+            if (type === 'error') { bgClass = 'bg-rose-600 text-white'; icon = 'fa-triangle-exclamation'; }
+
+            toast.className = `flex items-center space-x-2 px-4 py-3 rounded-2xl shadow-lg text-xs font-medium transition-all transform translate-y-2 opacity-0 ${bgClass}`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i><span>${message}</span>`;
+
+            container.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Initialize App on DOM Content Loaded
+        window.onload = function() {
+            initData();
+        };
+    </script>
+</body>
+</html>
